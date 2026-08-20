@@ -11,27 +11,31 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Servir archivos estáticos del frontend
+// Servir archivos estáticos del frontend (CRM y Agenda)
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Configuración robusta de Pool para Render
-const pool = process.env.DATABASE_URL 
-  ? new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }
-    })
-  : new Pool({
-      user: process.env.DB_USER || 'segmed_admin',
-      host: process.env.DB_HOST || 'localhost',
-      database: process.env.DB_NAME || 'segmed_crm',
-      password: process.env.DB_PASSWORD || 'segmed_pass_2026',
-      port: process.env.DB_PORT || 5432
-    });
+// Configuración robusta de Pool para Render o Local
+const isProduction = !!process.env.DATABASE_URL;
+const pool = new Pool(
+  isProduction
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      }
+    : {
+        user: process.env.DB_USER || 'segmed_admin',
+        host: process.env.DB_HOST || 'localhost',
+        database: process.env.DB_NAME || 'segmed_crm',
+        password: process.env.DB_PASSWORD || 'segmed_pass_2026',
+        port: process.env.DB_PORT || 5432
+      }
+);
 
-// Inicialización de Tablas en PostgreSQL
+// Inicialización y Migración Automática de Tablas en PostgreSQL
 async function initDatabase() {
   try {
+    // 1. Crear tabla leads si no existe
     await pool.query(`
       CREATE TABLE IF NOT EXISTS leads (
         id SERIAL PRIMARY KEY,
@@ -52,23 +56,36 @@ async function initDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // 2. Asegurar columnas en caso de que la tabla haya existido previamente
+    await pool.query(`
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS direccion TEXT;
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS fecha_visita VARCHAR(50);
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS hora_visita VARCHAR(50);
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS clasificacion VARCHAR(100) DEFAULT 'General';
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS folio_cotizacion VARCHAR(100);
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS monto_neto NUMERIC(12, 2) DEFAULT 0;
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS monto_total NUMERIC(12, 2) DEFAULT 0;
+    `);
+
     console.log('✅ Base de Datos PostgreSQL inicializada y sincronizada en Render.');
   } catch (err) {
-    console.error('❌ Error inicializando tablas PostgreSQL:', err.message);
+    console.error('❌ Error inicializando esquema PostgreSQL:', err.message);
   }
 }
 initDatabase();
 
-// Servir carpeta de archivos estáticos
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, '../public')));
+// --- RUTAS DE NAVEGACIÓN WEB ---
 
-// Ruta explícita para agendar (acepta /agendar, /agendar.html, /agenda y /agenda.html)
+// Ruta para la Agenda
 app.get(['/agendar', '/agendar.html', '/agenda', '/agenda.html'], (req, res) => {
-  const filePath = path.join(__dirname, 'public', 'agendar.html');
-  res.sendFile(filePath);
+  res.sendFile(path.join(__dirname, 'public', 'agendar.html'));
 });
 
+// Ruta principal para el Tablero CRM
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // --- RUTAS DE API ---
 
@@ -83,19 +100,19 @@ app.get('/api/leads', async (req, res) => {
   }
 });
 
-// 2. Endpoint de Agendamiento de Visitas Técnicas (Móvil / Web)
+// 2. Endpoint de Agendamiento de Visitas Técnicas (Móvil / Web) + Alertas
 app.post('/api/agendar-visita', async (req, res) => {
   try {
     const { lead_id, empresa, nombre, telefono, email, direccion, fecha, hora } = req.body;
     const idNum = parseInt(lead_id, 10);
 
-    // 1. Guardar o actualizar en PostgreSQL
+    // A. Guardar o actualizar en PostgreSQL
     if (idNum && idNum > 0) {
       await pool.query(
         `UPDATE leads 
          SET etapa = 'VISITA_AGENDADA', 
              telefono = COALESCE($1, telefono), 
-             direccion = COALESCE($2, direccion), 
+             direccion = $2, 
              fecha_visita = $3, 
              hora_visita = $4, 
              updated_at = NOW() 
@@ -110,28 +127,48 @@ app.post('/api/agendar-visita', async (req, res) => {
       );
     }
 
-    console.log(`📅 Visita registrada en BD: ${empresa} (${fecha} ${hora})`);
+    console.log(`📅 Visita registrada en BD: ${empresa || nombre} (${fecha} ${hora})`);
 
-    // 2. Disparar Alerta a Telegram / n8n Webhook
-    const mensajeTelegram = `🚨 *NUEVA VISITA TÉCNICA AGENDADA*\n\n🏢 *Empresa:* ${empresa}\n👤 *Contacto:* ${nombre}\n📞 *Teléfono:* ${telefono}\n📧 *Email:* ${email}\n📍 *Dirección:* ${direccion}\n📅 *Fecha:* ${fecha}\n⏰ *Hora:* ${hora} hrs`;
+    // B. Alerta Directa a Telegram (API Oficial Telegram 24/7)
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
 
-    // Si usas Webhook de n8n:
-    try {
-      if (process.env.N8N_AGENDA_WEBHOOK_URL) {
+    if (token && chatId) {
+      try {
+        const mensaje = `🚨 *NUEVA VISITA TÉCNICA AGENDADA*\n\n🏢 *Empresa:* ${empresa}\n👤 *Contacto:* ${nombre}\n📞 *Teléfono:* ${telefono}\n📧 *Email:* ${email}\n📍 *Dirección:* ${direccion}\n📅 *Fecha:* ${fecha}\n⏰ *Hora:* ${hora} hrs\n\n📌 *Estado:* Registrado en CRM SEGMED`;
+
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: mensaje,
+            parse_mode: 'Markdown'
+          })
+        });
+        console.log('📲 Alerta enviada a Telegram.');
+      } catch (tgErr) {
+        console.warn('Aviso Telegram Bot:', tgErr.message);
+      }
+    }
+
+    // C. Notificar a n8n Webhook (si está configurado)
+    if (process.env.N8N_AGENDA_WEBHOOK_URL) {
+      try {
         await fetch(process.env.N8N_AGENDA_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lead_id, empresa, nombre, telefono, email, direccion, fecha, hora, mensaje: mensajeTelegram })
+          body: JSON.stringify({ lead_id, empresa, nombre, telefono, email, direccion, fecha, hora })
         });
+      } catch (n8nErr) {
+        console.warn('Aviso Webhook n8n:', n8nErr.message);
       }
-    } catch (e) {
-      console.warn('Aviso webhook n8n:', e.message);
     }
 
-    return res.status(200).json({ success: true, message: 'Visita agendada y notificada' });
+    return res.status(200).json({ success: true, message: 'Visita agendada y registrada' });
   } catch (err) {
-    console.error('Error al registrar visita:', err);
-    return res.status(200).json({ success: true });
+    console.error('❌ Error al procesar agendamiento:', err);
+    return res.status(500).json({ error: err.message });
   }
 });
 
@@ -152,9 +189,20 @@ app.post('/api/leads/webhook', async (req, res) => {
   }
 });
 
-// Ruta amigable para la agenda
-app.get('/agendar', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'agendar.html'));
+// 4. Actualizar Etapa de un Lead en el CRM
+app.put('/api/leads/:id/etapa', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { etapa } = req.body;
+    const result = await pool.query(
+      `UPDATE leads SET etapa = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+      [etapa, id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error actualizando etapa:', err);
+    res.status(500).json({ error: 'Error al actualizar etapa' });
+  }
 });
 
 // Servidor Activo
