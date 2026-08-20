@@ -56,6 +56,17 @@ async function initDatabase() {
 }
 initDatabase();
 
+// Servir carpeta de archivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Ruta explícita para agendar (acepta /agendar, /agendar.html, /agenda y /agenda.html)
+app.get(['/agendar', '/agendar.html', '/agenda', '/agenda.html'], (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'agendar.html');
+  res.sendFile(filePath);
+});
+
+
 // --- RUTAS DE API ---
 
 // 1. Obtener todos los Leads para el CRM
