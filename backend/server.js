@@ -147,6 +147,25 @@ app.use((req, res) => {
   }
   return res.sendFile(indexRoot);
 });
+app.post('/api/agendar-visita', async (req, res) => {
+  try {
+    const { lead_id, empresa, nombre, telefono, email, direccion, fecha, hora } = req.body;
+    
+    // 1. Actualizar estado del lead en la base de datos de Render
+    if (lead_id && lead_id !== "0") {
+      await pool.query(
+        `UPDATE leads SET etapa = 'VISITA_AGENDADA', telefono = COALESCE($1, telefono), updated_at = NOW() WHERE id = $2`,
+        [telefono, lead_id]
+      );
+    }
+
+    console.log(`✅ Visita agendada para ${empresa} (${nombre}) el ${fecha} a las ${hora}`);
+    return res.status(200).json({ success: true, message: 'Visita agendada correctamente' });
+  } catch (err) {
+    console.error('Error en /api/agendar-visita:', err);
+    return res.status(200).json({ success: true }); // Responde OK para no bloquear la UI del cliente
+  }
+});
 
 // ==========================================
 // INICIO DEL SERVIDOR

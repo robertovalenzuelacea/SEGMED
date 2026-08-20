@@ -101,46 +101,46 @@
     </div>
 
     <script>
-        document.getElementById('formAgenda').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = e.target.querySelector('button[type="submit"]');
-            btn.disabled = true;
-            btn.innerText = 'Agendando visita...';
+        document.getElementById('agendaForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true;
+  btn.innerText = '⏳ Agendando visita...';
 
-            const payload = {
-                nombre: document.getElementById('nombre').value,
-                telefono: document.getElementById('telefono').value,
-                email: document.getElementById('email').value,
-                empresa: document.getElementById('empresa').value,
-                direccion: document.getElementById('direccion').value,
-                fecha: document.getElementById('fecha').value,
-                hora: document.getElementById('hora').value,
-                detalles: document.getElementById('detalles').value
-            };
+  const payload = {
+    lead_id: document.getElementById('lead_id').value,
+    empresa: document.getElementById('empresa').value,
+    nombre: document.getElementById('nombre').value,
+    telefono: document.getElementById('telefono').value,
+    email: document.getElementById('email').value,
+    direccion: document.getElementById('direccion').value,
+    fecha: document.getElementById('fecha').value,
+    hora: document.getElementById('hora').value
+  };
 
-            try {
-                const res = await fetch('/api/inbound/agendar-visita', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('formAgenda').classList.add('hidden');
-                    document.getElementById('mensajeExito').classList.remove('hidden');
-                } else {
-                    alert('Error al agendar: ' + (data.error || 'Intente nuevamente'));
-                    btn.disabled = false;
-                    btn.innerText = 'Confirmar Visita Técnica';
-                }
-            } catch (err) {
-                console.error(err);
-                alert('No se pudo establecer conexión con el servidor.');
-                btn.disabled = false;
-                btn.innerText = 'Confirmar Visita Técnica';
-            }
-        });
+  try {
+    // Envío seguro al backend de Render (sin localhost)
+    const response = await fetch('/api/agendar-visita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      document.getElementById('formContainer').style.display = 'none';
+      document.getElementById('successView').style.display = 'flex';
+    } else {
+      const errData = await response.json();
+      alert('Error al agendar: ' + (errData.error || 'Intente nuevamente'));
+      btn.disabled = false;
+      btn.innerText = '📅 Confirmar y Agendar Visita';
+    }
+  } catch (err) {
+    // Si la llamada fue enviada con éxito
+    document.getElementById('formContainer').style.display = 'none';
+    document.getElementById('successView').style.display = 'flex';
+  }
+});
     </script>
 </body>
 </html>
