@@ -15,16 +15,19 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Configuración de Base de Datos PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || undefined,
-  user: process.env.DB_USER || 'segmed_admin',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'segmed_crm',
-  password: process.env.DB_PASSWORD || 'segmed_pass_2026',
-  port: process.env.DB_PORT || 5432,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
-});
+// Configuración robusta de Pool para Render
+const pool = process.env.DATABASE_URL 
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    })
+  : new Pool({
+      user: process.env.DB_USER || 'segmed_admin',
+      host: process.env.DB_HOST || 'localhost',
+      database: process.env.DB_NAME || 'segmed_crm',
+      password: process.env.DB_PASSWORD || 'segmed_pass_2026',
+      port: process.env.DB_PORT || 5432
+    });
 
 // Inicialización de Tablas en PostgreSQL
 async function initDatabase() {
