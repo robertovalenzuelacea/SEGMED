@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SEGMED Enterprise OS — Inteligencia Mercado Público & CRM B2B</title>
+    
+    <!-- LIBRERÍAS DE REPORTE Y GRÁFICOS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- FUENTES EJECUTIVAS SEGMED -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+      :root {
+        color-scheme: dark; font-family: 'Plus Jakarta Sans', sans-serif;
+        --bg-main: #05070c; --bg-subtle: #090d16; --surface-1: #0f1626; --surface-2: #162035;
+        --border-subtle: rgba(255, 255, 255, 0.06); --border-mid: #1d2b45; --border-hover: #2f456e;
+        --ink: #f8fafc; --muted: #8295b0; --muted-dark: #4b5d78;
+        --brand-red: #E30613; --accent-green: #00f59b; --accent-cyan: #00e5ff; --accent-gold: #f59e0b; --accent-purple: #a855f7;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: var(--bg-main); color: var(--ink); line-height: 1.5; min-height: 100vh; overflow-x: hidden; }
+      button, input, select, textarea { font: inherit; outline: none; }
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: var(--bg-main); }
+      ::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 999px; }
+
+      .app-shell { min-height: 100vh; display: grid; grid-template-columns: 270px minmax(0, 1fr); }
+      .sidebar { position: sticky; top: 0; height: 100vh; background: var(--bg-subtle); border-right: 1px solid var(--border-mid); padding: 24px 18px; display: flex; flex-direction: column; justify-content: space-between; }
+      .brand { display: flex; align-items: center; gap: 14px; padding-bottom: 20px; border-bottom: 1px solid var(--border-subtle); }
+      .brand-mark { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; background: linear-gradient(135deg, var(--brand-red), #850b15); font-size: 22px; font-weight: 900; color: #fff; }
+      nav { display: grid; gap: 5px; margin-top: 18px; }
+      nav button { width: 100%; border: 0; background: transparent; color: var(--muted); text-align: left; padding: 11px 14px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 13.5px; transition: all 180ms ease; }
+      nav button.active { background: linear-gradient(90deg, rgba(227, 6, 19, 0.18), transparent); color: #fff; border-left: 3px solid var(--brand-red); font-weight: 700; }
+      
+      .workspace { padding: 28px 36px; display: grid; gap: 24px; }
+      .topbar { display: flex; justify-content: space-between; align-items: center; background: var(--surface-1); border: 1px solid var(--border-mid); border-radius: 18px; padding: 16px 24px; box-shadow: 0 12px 35px rgba(0,0,0,0.35); }
+      .eyebrow { color: var(--brand-red); font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 2px; }
+      h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+
+      .top-actions { display: flex; gap: 10px; align-items: center; }
+      .primary, .ghost { border-radius: 10px; min-height: 40px; padding: 0 18px; font-weight: 700; font-size: 13px; cursor: pointer; border: 1px solid var(--border-mid); background: var(--surface-2); color: #fff; transition: all 180ms ease; display: inline-flex; align-items: center; gap: 8px; }
+      .primary { border: 0; background: linear-gradient(135deg, var(--brand-red), #af1528); }
+      .ghost:hover { border-color: var(--muted); background: rgba(255,255,255,0.06); }
+      .btn-whatsapp { border: 0; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border-radius: 10px; min-height: 40px; padding: 0 18px; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 0 20px rgba(16, 185, 129, 0.35); }
+      
+      .view { display: none; gap: 20px; flex-direction: column; }
+      .view.active { display: flex; }
+      
+      .panel { background: var(--surface-1); border: 1px solid var(--border-mid); border-radius: 18px; padding: 24px; }
+      .financial-bar { display: flex; justify-content: space-between; align-items: center; background: linear-gradient(90deg, rgba(0, 245, 155, 0.08), rgba(0, 229, 255, 0.04)); border: 1px solid rgba(0, 245, 155, 0.25); padding: 14px 20px; border-radius: 12px; margin-bottom: 20px; }
+      .financial-bar-item { display: flex; align-items: center; gap: 10px; }
+      .financial-bar-item strong { font-size: 18px; font-weight: 900; color: var(--accent-green); font-family: 'JetBrains Mono', monospace; }
+
+      .kanban-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; align-items: flex-start; }
+      .kanban-col { background: rgba(11, 16, 26, 0.75); border: 1px solid var(--border-mid); border-radius: 16px; padding: 16px; min-height: 600px; max-height: calc(100vh - 300px); overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+      .kanban-col-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-mid); padding-bottom: 12px; margin-bottom: 2px; }
+      .kanban-col-head h3 { font-size: 13px; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+      .col-count { background: rgba(255,255,255,0.06); padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 800; color: #fff; }
+      
+      .kanban-card { background: var(--surface-2); border: 1px solid var(--border-mid); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: all 200ms ease; cursor: grab; }
+      .kanban-card:hover { border-color: var(--border-hover); transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,0.6); }
+      .card-title { font-size: 13.5px; font-weight: 700; color: #fff; line-height: 1.45; }
+      
+      .btn-action { font-size: 11px; padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-mid); color: #fff; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+      .btn-action.dossier { color: var(--accent-cyan); border-color: rgba(0, 229, 255, 0.3); background: rgba(0, 229, 255, 0.06); }
+      .btn-action.cotizar { color: #00f59b; border-color: rgba(0, 245, 155, 0.35); background: rgba(0, 245, 155, 0.08); }
+      
+      /* MODALES */
+      .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(12px); display: none; place-items: center; z-index: 99999; padding: 20px; }
+      .modal-backdrop.show { display: grid; }
+      .modal-card { background: var(--surface-1); border: 1px solid var(--border-hover); border-radius: 16px; width: 100%; max-width: 980px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 80px rgba(0,0,0,0.9); }
+      .modal-header { padding: 18px 26px; border-bottom: 1px solid var(--border-mid); display: flex; justify-content: space-between; align-items: center; background: var(--surface-2); }
+      .modal-tabs { display: flex; gap: 8px; padding: 12px 26px; background: var(--bg-subtle); border-bottom: 1px solid var(--border-mid); overflow-x: auto; }
+      .modal-tab-btn { background: transparent; border: 1px solid var(--border-mid); color: var(--muted); padding: 8px 14px; border-radius: 8px; font-size: 11.5px; font-weight: 700; cursor: pointer; transition: all 150ms; }
+      .modal-tab-btn.active { background: var(--surface-2); color: #fff; border-color: var(--accent-cyan); }
+      .modal-body { padding: 24px 26px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+      .modal-footer { padding: 18px 26px; border-top: 1px solid var(--border-mid); display: flex; justify-content: space-between; align-items: center; background: var(--surface-2); }
+      
+      .timeline-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: rgba(0,0,0,0.3); padding: 14px; border-radius: 12px; border: 1px solid var(--border-mid); }
+      .timeline-step { display: flex; flex-direction: column; gap: 4px; border-left: 2px solid var(--accent-cyan); padding-left: 8px; }
+      .timeline-step span { font-size: 10.5px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+      .timeline-step strong { font-size: 12px; color: #fff; font-family: 'JetBrains Mono', monospace; }
+      
+      /* ESTILOS DOSSIER (DARK MODE) */
+      .dossier-box { background: #06090e; border: 1px solid var(--border-mid); border-radius: 12px; padding: 24px; font-size: 13px; line-height: 1.6; color: #f1f5f9; }
+      .dossier-box h4 { color: #fff; font-size: 16px; text-transform: uppercase; margin-bottom: 4px; }
+      .dossier-box b, .dossier-box strong { color: #fff; }
+      .dossier-box table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; border: 1px solid var(--border-mid); }
+      .dossier-box th { background: var(--surface-2); color: #fff; padding: 10px; border: 1px solid var(--border-mid); text-align: left; }
+      .dossier-box td { padding: 10px; border: 1px solid var(--border-mid); color: #cbd5e1; }
+
+      .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; background: #0a0e17; padding: 18px; border-radius: 10px; border: 1px solid var(--border-mid); }
+      .form-grid label { display: flex; flex-direction: column; gap: 6px; font-size: 11px; font-weight: 800; color: #cbd5e1; text-transform: uppercase; }
+      .form-grid input, .form-grid textarea, .form-grid select { padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border-mid); background: var(--surface-2); color: #fff; font-size: 12.5px; }
+
+      .table-wrap { overflow: auto; border: 1px solid var(--border-mid); border-radius: 14px; max-height: 500px; }
+      table { width: 100%; border-collapse: collapse; text-align: left; }
+      th, td { padding: 14px 18px; border-bottom: 1px solid var(--border-mid); font-size: 13.5px; }
+      th { color: var(--muted); font-size: 11.5px; position: sticky; top: 0; background: var(--surface-1); text-transform: uppercase; font-weight: 800; }
+      
+      .toast { position: fixed; right: 28px; bottom: 28px; transform: translateY(30px); opacity: 0; background: var(--surface-2); color: #fff; border-radius: 12px; padding: 16px 22px; border: 1px solid var(--border-hover); box-shadow: 0 15px 40px rgba(0,0,0,0.6); transition: all 200ms ease; z-index: 999999; font-weight: 700; font-size: 13.5px; }
+      .toast.show { transform: translateY(0); opacity: 1; }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar">
+        <div>
+          <div class="brand">
+            <div class="brand-mark">S</div>
+            <div><strong>SEGMED</strong><br><span style="color:var(--muted); font-size:11.5px;">Enterprise Engine</span></div>
+          </div>
+          <nav id="mainNav">
+            <button class="active" onclick="setView('licitaciones')">🏛️ Licitaciones (Kanban)</button>
+            <button onclick="setView('pipeline')">🚀 Pipeline B2B (Privado)</button>
+            <button onclick="setView('builder')">📢 Campañas y WhatsApp</button>
+          </nav>
+        </div>
+        <div class="sidebar-footer-card">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+            <small style="color:var(--muted); font-size:11px; font-weight:800;">SISTEMA B2B</small>
+            <span style="color:var(--accent-green); font-size:11px; font-weight:800;">v12.7 STABLE</span>
+          </div>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div><p class="eyebrow">Motor de Decisión Comercial</p><h1 id="pageTitle">Licitaciones Mercado Público</h1></div>
+          <div class="top-actions">
+            <button class="ghost" onclick="loadLicitaciones()">🔄 Sincronizar con n8n</button>
+          </div>
+        </header>
+
+        <!-- ========================================== -->
+        <!-- VISTA: LICITACIONES (MERCADO PÚBLICO)      -->
+        <!-- ========================================== -->
+        <section class="view active" id="licitacionesView">
+          <div class="panel">
+            <div class="financial-bar">
+              <div class="financial-bar-item"><span style="font-size:12px; color:var(--muted); font-weight:700;">💰 Pipeline Total:</span><strong id="barPipelineTotal">$0 CLP</strong></div>
+              <div class="financial-bar-item"><span style="font-size:12px; color:var(--muted); font-weight:700;">⚡ Licitaciones:</span><strong id="barTotalCount" style="color:#fff;">0</strong></div>
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+              <input type="text" id="licitSearch" placeholder="🔍 Buscar código o nombre..." onkeyup="filterKanban()" style="width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border-mid); background:var(--bg-subtle); color:#fff; font-size:13px;">
+            </div>
+
+            <div class="kanban-grid">
+              <div class="kanban-col" data-estado="Descubierta" ondrop="dropLicitacion(event)" ondragover="allowDrop(event)">
+                <div class="kanban-col-head"><h3>🟢 Descubiertas</h3></div><div id="colDescubierta" style="display:flex; flex-direction:column; gap:14px; min-height:100%;"></div>
+              </div>
+              <div class="kanban-col" data-estado="En Evaluación" ondrop="dropLicitacion(event)" ondragover="allowDrop(event)">
+                <div class="kanban-col-head"><h3>🟡 En Evaluación</h3></div><div id="colEvaluacion" style="display:flex; flex-direction:column; gap:14px; min-height:100%;"></div>
+              </div>
+              <div class="kanban-col" data-estado="Preparando Oferta" ondrop="dropLicitacion(event)" ondragover="allowDrop(event)">
+                <div class="kanban-col-head"><h3>🔵 Preparando Oferta</h3></div><div id="colPreparando" style="display:flex; flex-direction:column; gap:14px; min-height:100%;"></div>
+              </div>
+              <div class="kanban-col" data-estado="Postuladas / Ganadas" ondrop="dropLicitacion(event)" ondragover="allowDrop(event)">
+                <div class="kanban-col-head"><h3>🟣 Postuladas / Ganadas</h3></div><div id="colPostuladas" style="display:flex; flex-direction:column; gap:14px; min-height:100%;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VISTA: PIPELINE B2B PRIVADO                -->
+        <!-- ========================================== -->
+        <section class="view" id="pipelineView">
+          <div class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 14px;">
+              <div>
+                <h2 style="font-size:20px;">Pipeline Comercial B2B (Privado)</h2>
+                <p style="margin:4px 0 0; color:var(--muted); font-size:13.5px;">Gestión de oportunidades y búsqueda de cotizaciones emitidas por Víctor IA.</p>
+              </div>
+              <button class="primary" onclick="cargarPipeline()">🔄 Actualizar Tablero</button>
+            </div>
+
+            <div style="margin-bottom: 18px;">
+              <input type="text" id="searchPipelineInput" placeholder="🔍 Buscar por empresa o Nº Cotización..." onkeyup="filterPipelineLive()" style="width:100%; padding:11px 16px; border-radius:10px; border:1px solid var(--border-mid); background:var(--bg-subtle); color:#fff; font-size:13px; font-weight:600;">
+            </div>
+
+            <div class="kanban-grid">
+              <div class="kanban-col" data-etapa="NUEVO_LEAD" ondrop="dropB2B(event)" ondragover="allowDrop(event)">
+                <div class="kanban-col-head" style="border-bottom-color: var(--accent-cyan);"><h3 style="color: var(--accent-cyan);">📥 Nuevos Leads</h3></div>
+                <div class="kanban-cards" style="display:flex; flex-direction:column; gap:14px; min-height:100%;"></div>
+              </div>
+              <div class="kanban-col" data-etapa="VISITA_AGENDADA" ondrop="dropB2B(event)" ondragover="allowDrop(event)">
+                <div class="kanban-col-head" style="border-bottom-color: var(--accent-purple);"><h3 style="color: var(--accent-purple);">📅 Visitas Agendadas</h3></div>
+                <div class="kanban-cards" style="display:flex; flex-direction:column; gap:14px; min-height:100%;"></div>
+              </div>
+              <div class="kanban-col" data-etapa="NEGOCIACION" ondrop="dropB2B(event)" ondragover="allowDrop(event)">
+                <div class="kanban-col-head" style="border-bottom-color: var(--accent-gold);"><h3 style="color: var(--accent-gold);">💬 En Negociación</h3></div>
+                <div class="kanban-cards" style="display:flex; flex-direction:column; gap:14px; min-height:100%;"></div>
+              </div>
+              <div class="kanban-col" data-etapa="CIERRE_GANADO" ondrop="dropB2B(event)" ondragover="allowDrop(event)">
+                <div class="kanban-col-head" style="border-bottom-color: var(--accent-green);"><h3 style="color: var(--accent-green);">🏆 Cierre Ganado</h3></div>
+                <div class="kanban-cards" style="display:flex; flex-direction:column; gap:14px; min-height:100%;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VISTA: GESTOR DE CAMPAÑAS SDR              -->
+        <!-- ========================================== -->
+        <section class="view" id="builderView">
+          <div class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+              <div>
+                <h2 style="font-size:20px;">Gestor de Campañas & Outreach B2B</h2>
+                <p style="margin:4px 0 0; color:var(--muted); font-size:13.5px;">Agente Alex SDR — Despacho inteligente por lotes segmentados con protección anti-ban.</p>
+              </div>
+              <button class="primary" onclick="abrirModalLotes()">🚀 Despachar Nuevo Lote B2B</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Campaña / Lote</th><th>Segmento Objetivo</th><th>Canal</th><th>Alcance / Leads</th><th>Estado Alex SDR</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Hospitales & Clínicas RM</strong></td>
+                    <td><span style="background:rgba(0,229,255,0.1); color:var(--accent-cyan); padding:3px 8px; border-radius:6px; font-size:11px;">Salud & Hospitalario</span></td>
+                    <td>💬 WhatsApp + ✉️ Email</td>
+                    <td><strong style="font-family:'JetBrains Mono'; color:#fff;">250 / 250</strong></td>
+                    <td><span style="background:rgba(0,245,155,0.12); color:var(--accent-green); padding:3px 8px; border-radius:6px; font-size:11px;">🟢 Completado</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 1: DOSSIER LICITACIÓN (RAG REPORT - DARK MODE)              -->
+    <!-- ================================================================= -->
+    <div class="modal-backdrop" id="dossierModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <span class="eyebrow">SEGMED Chile — Inteligencia B2B</span>
+            <h3 id="modalLicitTitle" style="font-size:18px; color:#fff;">Expediente de Licitación</h3>
+          </div>
+          <button class="ghost" onclick="cerrarDossier()" style="min-height:34px; padding:0 14px;">✕ Cerrar</button>
+        </div>
+        <div class="modal-tabs">
+          <button class="modal-tab-btn active" onclick="switchModalTab('agente1')">📋 Agente 1: Auditoría de Bases</button>
+          <button class="modal-tab-btn" onclick="switchModalTab('agente2')">⚔️ Agente 2: Criterios & Precios</button>
+          <button class="modal-tab-btn" onclick="switchModalTab('decision')">🎯 Dictamen GO / NO-GO</button>
+        </div>
+        <div class="modal-body">
+          <div class="timeline-grid" style="margin-bottom: 5px;">
+            <div class="timeline-step"><span>📅 Publicación</span><strong id="tlPublicacion">Hoy</strong></div>
+            <div class="timeline-step"><span>❓ Fin Preguntas</span><strong id="tlPreguntas">Ver Bases</strong></div>
+            <div class="timeline-step"><span>🚶 Visita Terreno</span><strong id="tlVisita">Por definir</strong></div>
+            <div class="timeline-step" style="border-color:var(--brand-red);"><span style="color:var(--brand-red);">🛑 Cierre Ofertas</span><strong id="tlCierre" style="color:#ff5252;">Ver Bases</strong></div>
+          </div>
+          <div id="modalTabContent" class="dossier-box"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="primary" onclick="descargarExpedientePDF()">📄 Descargar Dossier PDF</button>
+          <div style="display:flex; gap:10px;">
+            <a id="btnDescargarBases" href="#" target="_blank" class="ghost" style="text-decoration:none;">📥 Descargar Bases Oficiales</a>
+            <a id="btnModalPortal" href="#" target="_blank" class="ghost" style="text-decoration:none; color:var(--accent-cyan); border-color:var(--accent-cyan);">🌐 Ver en Mercado Público</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 2: COTIZADOR VÍCTOR IA (PIPELINE B2B)                       -->
+    <!-- ================================================================= -->
+    <div class="modal-backdrop" id="modalCotizadorVictor">
+      <div class="modal-card" style="max-width: 960px;">
+        <div class="modal-header">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div class="brand-mark" style="width:36px; height:36px; font-size:18px;">S</div>
+            <div>
+              <span class="eyebrow">Dossier de Cotización Técnica • Víctor IA</span>
+              <h3 style="font-size:18px; color:#fff;" id="lblCotizadorCliente">Propuesta Comercial</h3>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="ghost" onclick="consultarSugerenciaIA()" style="color:var(--accent-cyan); border-color:var(--accent-cyan);">🧠 Auto-Calibrar con IA</button>
+            <button class="ghost" onclick="cerrarCotizadorVictor()">✕ Cerrar</button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <label>Especialidad <select id="cotizServicio" onchange="consultarSugerenciaIA()"><option value="Climatización & HVAC">❄️ Climatización & HVAC</option><option value="Red Contra Incendio NFPA 25">🔥 Red Contra Incendio</option></select></label>
+            <label>Validez <input type="text" id="cotizValidez" value="15 Días Hábiles"></label>
+            <label>Pago <input type="text" id="cotizPago" value="30 días contra factura"></label>
+          </div>
+          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-mid); border-radius:12px; padding:14px 18px;">
+            <label style="font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase;">Diagnóstico en Terreno</label>
+            <input type="text" id="cotizDiagnostico" style="width:100%; padding:9px; border-radius:8px; background:var(--surface-2); color:#fff; font-size:12.5px;">
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase;">Itemizado</span>
+              <button class="ghost" onclick="agregarPartidaTecnica()" style="font-size:11px; padding:4px 10px; color:var(--accent-green);">+ Agregar Partida</button>
+            </div>
+            <div class="table-wrap" style="max-height: 200px;">
+              <table>
+                <thead><tr><th style="width:50%;">Descripción</th><th style="width:15%;">Cant.</th><th style="width:25%;">P. Unitario Neto</th><th style="width:10%;"></th></tr></thead>
+                <tbody id="tablaPartidasBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div style="background:rgba(0,245,155,0.04); border:1px solid rgba(0,245,155,0.2); border-radius:12px; padding:14px 20px; display:flex; justify-content:space-between;">
+            <div><span style="font-size:11px; color:var(--muted); display:block;">Subtotal Neto:</span><strong id="lblCotizSubtotal" style="font-size:16px; color:#fff;">$0</strong></div>
+            <div><span style="font-size:11px; color:var(--muted); display:block;">IVA (19%):</span><strong id="lblCotizIva" style="font-size:16px; color:var(--accent-cyan);">$0</strong></div>
+            <div><span style="font-size:11px; color:var(--accent-green); display:block;">Total Propuesta:</span><strong id="lblCotizTotal" style="font-size:22px; color:var(--accent-green);">$0</strong></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="ghost" onclick="cerrarCotizadorVictor()">✕ Cancelar</button>
+          <div style="display:flex; gap:10px;">
+            <button class="ghost" onclick="descargarPDFPropuestaVictor()" style="color:var(--accent-cyan); border-color:var(--accent-cyan);">📄 Descargar PDF</button>
+            <button class="btn-whatsapp" onclick="enviarCotizacionPorWhatsApp()">💬 WhatsApp</button>
+            <button class="primary" onclick="enviarCotizacionPorCorreo()">✉️ Enviar por Correo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 3: GESTOR DE LOTES Y CAMPAÑAS WHATSAPP (ALEX SDR)           -->
+    <!-- ================================================================= -->
+    <div class="modal-backdrop" id="modalLotesCampaign">
+      <div class="modal-card" style="max-width: 800px;">
+        <div class="modal-header">
+          <div><span class="eyebrow">Outreach B2B • Alex SDR</span><h3 style="font-size:18px; color:#fff;">Despachar Lote B2B</h3></div>
+          <button class="ghost" onclick="cerrarModalLotes()" style="min-height:34px; padding:0 14px;">✕ Cerrar</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <label>Segmento Base Maestra <select id="selRubroSegmento" onchange="cargarSegmentoSeleccionado()"><option value="HOSPITALARIO">🏥 Salud & Hospitales</option><option value="INDUSTRIAL">🏭 Industrial & Bodegas</option></select></label>
+            <label>Canal Principal <select id="selCanalLote"><option value="WHATSAPP">💬 WhatsApp Automatizado</option><option value="EMAIL">✉️ Email Directo</option></select></label>
+          </div>
+          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-mid); border-radius:12px; padding:16px;">
+            <label style="font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase;">Plantilla de Mensaje (Alex SDR)</label>
+            <textarea id="campMensaje" rows="5" style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--border-mid); background:var(--surface-2); color:#fff; font-size:12.5px; margin-top:8px;">Estimado(a) {nombre}, de parte de SEGMED SpA, nos comunicamos respecto a la infraestructura de {empresa}. ¿Le acomoda coordinar una inspección?</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="ghost" onclick="cerrarModalLotes()">Cancelar</button>
+          <button class="primary" onclick="ejecutarEnvioLote()">🚀 Despachar Lote a n8n</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLANTILLAS OCULTAS PARA RENDERIZAR PDF -->
+    <div id="plantillaPdfDossier" style="display:none; background:#ffffff; color:#0f172a; padding:30px 40px; font-family:'Plus Jakarta Sans', Arial, sans-serif; line-height:1.45;"></div>
+    <div id="plantillaPdfImprimible" style="display:none; background:#ffffff; color:#0f172a; padding:30px 40px; font-family:'Plus Jakarta Sans', Arial, sans-serif; line-height:1.45;"></div>
+    <div class="toast" id="toast"></div>
+
+    <!-- ========================================================================= -->
+    <!-- SCRIPT MAESTRO (100% UNIFICADO, NADA DE STUBS)                            -->
+    <!-- ========================================================================= -->
+    <script>
+      // ==========================================
+      // ESTADO GLOBAL Y NAVEGACIÓN
+      // ==========================================
+      const state = { 
+        view: "licitaciones", 
+        licitaciones: [], filteredLicitaciones: [], licitacionSeleccionada: null,
+        cotizandoNegocioId: null, cotizandoEmpresa: '', cotizandoContacto: '', cotizandoEmail: '', cotizandoTelefono: '', cotizandoNumero: '', partidasCotizacion: []
+      };
+
+      function showToast(msg) { 
+        const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 4000); 
+      }
+      
+      function setView(view) { 
+        state.view = view; document.querySelectorAll(".view").forEach(el => el.classList.remove("active")); 
+        document.getElementById(view + "View").classList.add("active");
+        document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+        event.currentTarget.classList.add("active");
+        if(view === 'licitaciones') loadLicitaciones();
+        if(view === 'pipeline') cargarPipeline();
+      }
+
+      function allowDrop(ev) { ev.preventDefault(); }
+      function drag(ev) { ev.dataTransfer.setData("text/plain", ev.target.id); }
+
+      // SLA Calculators
+      function calcularSLA(fechaIso, etapa) {
+        if (etapa === 'CIERRE_GANADO' || etapa === 'GANADO') return { color: 'var(--accent-green)', bg: 'rgba(0, 245, 155, 0.12)', border: 'rgba(0, 245, 155, 0.35)', text: '🏆 Adjudicado' };
+        const creacion = fechaIso ? new Date(fechaIso) : new Date(); const ahora = new Date();
+        const diffHoras = Math.max(0, Math.floor((ahora - creacion) / (1000 * 60 * 60))); const diffDias = Math.floor(diffHoras / 24);
+        let tiempoStr = diffHoras < 1 ? 'Hace instantes' : (diffHoras < 24 ? `Hace ${diffHoras}h` : `Hace ${diffDias}d`);
+        if (diffHoras < 24) return { color: '#00f59b', bg: 'rgba(0, 245, 155, 0.12)', border: 'rgba(0, 245, 155, 0.3)', text: `🟢 Al día • ${tiempoStr}` };
+        else if (diffHoras < 48) return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.14)', border: 'rgba(245, 158, 11, 0.35)', text: `🟡 Atención • ${tiempoStr}` };
+        else return { color: '#ff4d4d', bg: 'rgba(255, 77, 77, 0.18)', border: 'rgba(255, 77, 77, 0.45)', text: `🔴 Urgente • ${tiempoStr}` };
+      }
+      function formatearFechaHora(fechaIso) {
+        if (!fechaIso) return 'Hoy'; const d = new Date(fechaIso); if (isNaN(d.getTime())) return 'Hoy';
+        return `${d.toLocaleDateString('es-CL')} a las ${d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}`;
+      }
+
+      // ==========================================
+      // MÓDULO 1: LICITACIONES MERCADO PÚBLICO
+      // ==========================================
+      async function loadLicitaciones() {
+        try {
+          const res = await fetch('/api/licitaciones');
+          state.licitaciones = await res.json();
+          state.filteredLicitaciones = [...state.licitaciones];
+          renderKanbanLicitaciones();
+        } catch(e) { console.error(e); }
+      }
+
+      function renderKanbanLicitaciones() {
+        const cols = { 'Descubierta': 'colDescubierta', 'En Evaluación': 'colEvaluacion', 'Preparando Oferta': 'colPreparando', 'Postuladas / Ganadas': 'colPostuladas' };
+        Object.values(cols).forEach(id => { document.getElementById(id).innerHTML = ''; });
+        let total = 0;
+
+        state.filteredLicitaciones.forEach(lic => {
+          total += Number(lic.monto || 0);
+          let estado = lic.estado || 'Descubierta';
+          if (estado === 'Adjudicada' || estado === 'Ganada' || estado === 'Postulada') estado = 'Postuladas / Ganadas';
+          const colId = cols[estado] || cols['Descubierta'];
+          
+          const codigoVisual = lic.codigo || lic.CodigoExterno || lic.codigo_externo || lic.id || 'Sin ID';
+          const fechaFormat = lic.created_at ? new Date(lic.created_at).toLocaleDateString('es-CL') : 'Hoy';
+
+          const card = document.createElement('div');
+          card.className = 'kanban-card'; card.draggable = true; card.id = `licitacion-${lic.id}`; card.ondragstart = drag;
+          card.innerHTML = `
+            <div style="display:flex; justify-content:space-between;">
+              <span style="font-size:10px; font-weight:900; background:rgba(255,255,255,0.1); padding:3px 8px; border-radius:6px;">${codigoVisual}</span>
+              <span style="font-size:10px; color:var(--muted);">${fechaFormat}</span>
+            </div>
+            <strong style="font-size:13px; color:#fff; margin-top:8px; display:block;">${lic.nombre || lic.titulo || 'Licitación Mercado Público'}</strong>
+            <div style="font-size:11px; color:var(--muted); margin-top:4px;">🏢 ${lic.organismo || 'Organismo Desconocido'}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid var(--border-subtle); padding-top:10px;">
+              <strong style="color:var(--accent-green);">$${Number(lic.monto || 0).toLocaleString('es-CL')}</strong>
+              <button class="btn-action dossier" onclick="abrirDossierLicitacion(${lic.id})">Dossier IA</button>
+            </div>
+          `;
+          document.getElementById(colId).appendChild(card);
+        });
+        document.getElementById('barPipelineTotal').innerText = `$${total.toLocaleString('es-CL')} CLP`;
+        document.getElementById('barTotalCount').innerText = state.filteredLicitaciones.length;
+      }
+
+      function filterKanban() {
+        const query = (document.getElementById('licitSearch')?.value || '').toLowerCase();
+        state.filteredLicitaciones = state.licitaciones.filter(l => {
+          const texto = `${l.codigo || ''} ${l.nombre || ''} ${l.organismo || ''}`.toLowerCase();
+          return texto.includes(query);
+        });
+        renderKanbanLicitaciones();
+      }
+
+      async function dropLicitacion(ev) {
+        ev.preventDefault(); const data = ev.dataTransfer.getData("text/plain"); if (!data.startsWith('licitacion-')) return;
+        const tarjeta = document.getElementById(data); ev.target.closest('.kanban-col').querySelector('div[id^="col"]').appendChild(tarjeta);
+        const licId = data.replace('licitacion-', ''); const estado = ev.target.closest('.kanban-col').getAttribute('data-estado');
+        await fetch(`/api/licitaciones/${licId}/estado`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({estado}) });
+      }
+
+      // DOSSIER IA (DARK MODE RESTAURADO CON VARIABLES SEGURAS)
+      window.abrirDossierLicitacion = function(dbId) {
+        const l = state.licitaciones.find(x => x.id == dbId);
+        if(!l) return showToast("❌ Licitación no encontrada.");
+        state.licitacionSeleccionada = l;
+        
+        const codigoVisual = l.codigo || l.CodigoExterno || l.codigo_externo || l.id;
+        document.getElementById('modalLicitTitle').innerText = `${codigoVisual} - ${(l.nombre||l.titulo||'Sin Título').substring(0, 45)}...`;
+        
+        const urlPortal = `https://www.mercadopublico.cl/Procurement/Modules/RFB/DetailsAcquisition.aspx?qs=${codigoVisual}`;
+        document.getElementById('btnModalPortal').href = urlPortal;
+        document.getElementById('btnDescargarBases').href = urlPortal;
+
+        switchModalTab('agente1');
+        document.getElementById('dossierModal').classList.add('show');
+      };
+
+      window.cerrarDossier = () => document.getElementById('dossierModal').classList.remove('show');
+
+      window.switchModalTab = function(tabId) {
+        document.querySelectorAll('#dossierModal .modal-tab-btn').forEach(t => t.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+
+        const l = state.licitacionSeleccionada;
+        const codigoVisual = l.codigo || l.CodigoExterno || l.codigo_externo || 'Pendiente';
+        const monto = Number(l.monto || 0).toLocaleString('es-CL');
+        const garantia = (Number(l.monto || 0) * 0.05).toLocaleString('es-CL');
+        const content = document.getElementById('modalTabContent');
+
+        if (tabId === 'agente1') {
+          content.innerHTML = `
+            <div style="border-bottom: 2px solid var(--brand-red); padding-bottom: 8px; margin-bottom: 15px;">
+              <h4>01 AUDITORÍA LEGAL Y BASES TÉCNICAS</h4>
+              <p style="color: var(--brand-red); font-size: 11px; font-weight: 800; margin:0;">Informe Técnico y Checklist de Salida</p>
+            </div>
+            <p><strong>1. CARACTERÍSTICAS:</strong><br>Licitación Pública (LP) - ID: ${codigoVisual}. Moneda: CLP.<br>Adjudicación: ${l.nombre || l.titulo || 'Servicio/Producto'}</p>
+            <p><strong>2. ORGANISMO:</strong><br>Institución: ${l.organismo || 'N/A'}. Región: ${l.region || 'N/A'}.</p>
+            <p style="margin-top:15px;"><strong>4. CHECKLIST DOCUMENTAL:</strong></p>
+            <table>
+              <tr><th>DOCUMENTO</th><th>EXIGIDO EN</th><th>RESPONSABLE</th></tr>
+              <tr><td>Garantía de Seriedad ($${garantia})</td><td>Bases Adm.</td><td>48h antes del cierre</td></tr>
+              <tr><td>Certificado F30-1 Vigente</td><td>Ley 19.886</td><td>Inmediato</td></tr>
+              <tr><td>Certificación SEC Personal</td><td>Bases Técnicas</td><td>Inmediato</td></tr>
+            </table>
+          `;
+        } else if (tabId === 'agente2') {
+          content.innerHTML = `
+            <div style="border-bottom: 2px solid var(--brand-red); padding-bottom: 8px; margin-bottom: 15px;">
+              <h4>02 INTELIGENCIA DE MERCADO Y PRICING</h4>
+              <p style="color: var(--brand-red); font-size: 11px; font-weight: 800; margin:0;">Entorno Competitivo y Costos</p>
+            </div>
+            <p><strong>1. MATRIZ DE CRITERIOS (100 PTS):</strong></p>
+            <table>
+              <tr><th>CRITERIO</th><th style="text-align:right;">PONDERACIÓN</th></tr>
+              <tr><td>Precio de los Servicios</td><td style="text-align:right; font-weight:bold;">45%</td></tr>
+              <tr><td>Calidad Técnica y SLA</td><td style="text-align:right; font-weight:bold;">20%</td></tr>
+              <tr><td>Experiencia del Oferente</td><td style="text-align:right; font-weight:bold;">10%</td></tr>
+              <tr><td>Criterio Inclusivo</td><td style="text-align:right; font-weight:bold;">10%</td></tr>
+            </table>
+            <p style="margin-top:15px;"><strong>2. HISTÓRICO RAG:</strong><br>El comprador (${l.organismo || 'La Institución'}) prioriza continuidad operacional forense y clínica. Se exige margen protegido >= 25% Neto.</p>
+            <div style="background:rgba(227,6,19,0.1); border:1px solid rgba(227,6,19,0.3); padding:10px; text-align:center; border-radius:8px; margin-top:15px;">
+              <strong style="color:var(--brand-red);">NIVEL DE AMENAZA: MEDIO-ALTO</strong>
+            </div>
+          `;
+        } else if (tabId === 'decision') {
+          content.innerHTML = `
+            <div style="border-bottom: 2px solid var(--brand-red); padding-bottom: 8px; margin-bottom: 15px;">
+              <h4>03 DICTAMEN DEL COMITÉ</h4>
+              <p style="color: var(--brand-red); font-size: 11px; font-weight: 800; margin:0;">Decisión Ejecutiva</p>
+            </div>
+            <div style="background:rgba(0,245,155,0.08); border:1px solid rgba(0,245,155,0.3); padding:20px; text-align:center; border-radius:8px; margin-bottom:15px;">
+              <h2 style="color:var(--accent-green); margin:0 0 5px 0;">✅ GO CONDICIONAL - POSTULAR</h2>
+              <p style="margin:0;">MATCH TÉCNICO: <strong>94%</strong> | Presupuesto: <strong>$${monto} CLP</strong></p>
+            </div>
+            <p><strong>Plan de Acción Inmediato:</strong></p>
+            <ul style="margin-left:20px;">
+              <li>Auditar TDR descargados del portal.</li>
+              <li>Validar viáticos a ${l.comuna || 'terreno'}.</li>
+              <li>Calcular margen asegurando >= 25% neto.</li>
+            </ul>
+          `;
+        }
+      };
+
+      window.armarHTMLDossierLicitacion = function() {
+        const l = state.licitacionSeleccionada; if (!l) return '';
+        const codigoVisual = l.codigo || l.CodigoExterno || l.codigo_externo || l.id;
+        const montoFormateado = Number(l.monto || 0).toLocaleString('es-CL'); 
+        const garantia = (Number(l.monto || 0) * 0.05).toLocaleString('es-CL');
+        const fechaCierre = new Date(new Date(l.created_at || Date.now()).getTime() + 15*24*60*60*1000).toISOString().split('T')[0];
+
+        return `
+          <div style="font-family: 'Helvetica Neue', Arial, sans-serif; color: #0f172a; padding: 20px;">
+            <div style="border-bottom:4px solid #E30613; padding-bottom:15px; margin-bottom:20px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div><h1 style="margin:0; font-size:26px; color:#0f172a; font-weight:900;">SEGMED Chile</h1><p style="margin:2px 0 0 0; font-size:11px; font-weight:800; color:#E30613;">UL LISTED • FM APPROVED • NFPA</p></div>
+                <div style="text-align:right;"><span style="font-size:10px; color:#64748b; font-weight:bold;">ID LICITACIÓN</span><div style="font-size:18px; font-weight:900; color:#0f172a;">${codigoVisual}</div></div>
+              </div>
+            </div>
+            <h2 style="text-align:center; font-size:18px; color:#0f172a; margin:0; font-weight:800;">REPORTE GERENCIAL CONFIDENCIAL</h2>
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:6px; margin-bottom:20px; font-size:12px; margin-top:20px;">
+              <strong style="color:#0f172a; font-size:14px; text-transform:uppercase;">${l.nombre || 'Sin Título'}</strong><br>
+              <span style="color:#475569; display:block; margin-top:6px;"><strong>Institución:</strong> ${l.organismo || ''} — <strong>Ubicación:</strong> ${l.region || ''}, ${l.comuna || ''}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; text-align:center; margin-bottom:30px; border-top:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0; padding:15px 0;">
+              <div><span style="display:block; font-size:15px; font-weight:900; color:#0f172a;">${fechaCierre}</span><span style="font-size:10px; color:#64748b;">CIERRE OFERTAS</span></div>
+              <div><span style="display:block; font-size:15px; font-weight:900; color:#0f172a;">$${montoFormateado} CLP</span><span style="font-size:10px; color:#64748b;">PRESUPUESTO</span></div>
+              <div><span style="display:block; font-size:15px; font-weight:900; color:#166534;">94%</span><span style="font-size:10px; color:#64748b;">MATCH TÉCNICO</span></div>
+            </div>
+            <h3 style="color:#E30613; font-size:15px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">01 AUDITORÍA LEGAL Y BASES TÉCNICAS</h3>
+            <p style="font-size:12px; margin-bottom:15px;"><strong>CHECKLIST DOCUMENTAL EXIGIDO:</strong><br>Garantía de Seriedad ($${garantia}), Certificado F30-1, Certificación SEC, Anexo 3.</p>
+            <h3 style="color:#E30613; font-size:15px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">02 INTELIGENCIA DE MERCADO Y PRICING</h3>
+            <p style="font-size:12px; margin-bottom:15px;"><strong>MATRIZ:</strong> Precio (45%), Calidad (20%), Experiencia (10%), Inclusivos (10%).<br><strong>TARGET:</strong> Margen comercial no inferior al 25% neto.</p>
+            <h3 style="color:#E30613; font-size:15px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">03 DICTAMEN DEL COMITÉ DE LICITACIONES</h3>
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:15px; text-align:center; margin-bottom:15px;">
+              <strong style="font-size:16px; color:#166534;">DECISIÓN: GO CONDICIONAL - POSTULAR CON RESERVAS</strong>
+            </div>
+          </div>
+        `;
+      };
+
+      window.descargarExpedientePDF = function() {
+        const l = state.licitacionSeleccionada; if (!l) return showToast("⚠️ Selecciona licitación.");
+        showToast("⏳ Generando PDF...");
+        const plantilla = document.getElementById('plantillaPdfDossier'); plantilla.innerHTML = armarHTMLDossierLicitacion(); plantilla.style.display = 'block';
+        const opt = { margin: 10, filename: `SEGMED_Expediente_${l.codigo||'ID'}.pdf`, html2canvas: { scale: 3 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+        html2pdf().from(plantilla).set(opt).save().then(() => { plantilla.style.display = 'none'; showToast(`✅ PDF descargado.`); });
+      };
+
+
+      // =========================================================================
+      // MÓDULO 2: PIPELINE B2B Y COTIZADOR VÍCTOR IA (RESTAURACIÓN 100%)
+      // =========================================================================
+      async function cargarPipeline() {
+        try {
+            let negocios = [];
+            const res = await fetch('/api/pipeline'); if (res.ok) negocios = await res.json();
+            document.querySelectorAll('#pipelineView .kanban-cards').forEach(col => col.innerHTML = '');
+            
+            if (Array.isArray(negocios)) {
+                negocios.forEach(negocio => {
+                    const tarjeta = document.createElement('div'); tarjeta.className = 'kanban-card'; tarjeta.draggable = true; tarjeta.id = 'negocio-' + negocio.id; tarjeta.ondragstart = drag;
+                    let etapaDestino = negocio.etapa || 'NUEVO_LEAD'; if (etapaDestino === 'EN_PROPUESTA') etapaDestino = 'NEGOCIACION'; if (etapaDestino === 'GANADO') etapaDestino = 'CIERRE_GANADO';
+                    const sla = calcularSLA(negocio.created_at || negocio.fecha_registro, etapaDestino); const fechaHoraStr = formatearFechaHora(negocio.created_at || negocio.fecha_registro); const montoVal = Number(negocio.monto || 0);
+                    let numCotiz = negocio.numero_cotizacion || ''; if (!numCotiz && negocio.detalles_cotizacion) { try { const det = JSON.parse(negocio.detalles_cotizacion); numCotiz = det.numeroCotizacion || ''; } catch(e){} }
+                    if (sla.urgente) { tarjeta.style.borderColor = 'rgba(255, 77, 77, 0.4)'; tarjeta.style.boxShadow = '0 0 16px rgba(255, 77, 77, 0.12)'; }
+                    tarjeta.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                          <strong class="card-title" style="font-size: 14.5px;">${negocio.empresa || 'Empresa'}</strong>
+                          <span style="font-size:10px; font-weight:800; padding:3px 8px; border-radius:6px; background:${sla.bg}; color:${sla.color}; border:1px solid ${sla.border}; white-space:nowrap;">${sla.text}</span>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                          <span style="color: var(--accent-cyan); font-size: 12.5px; font-weight:600;">👤 ${negocio.contacto_nombre || 'Sin contacto'}</span>
+                          <span style="font-size: 11.5px; color: var(--muted); display:flex; align-items:center; gap:4px; word-break:break-all;">✉️ ${negocio.email || '—'}</span>
+                          ${negocio.telefono && negocio.telefono !== '—' ? `<span style="font-size: 11.5px; color: #cbd5e1; display:flex; align-items:center; gap:4px; font-family:'JetBrains Mono';">📞 ${negocio.telefono}</span>` : ''}
+                        </div>
+                        ${montoVal > 0 ? `
+                        <div style="background:rgba(0,245,155,0.06); border:1px solid rgba(0,245,155,0.25); border-radius:8px; padding:8px 10px; display:flex; flex-direction:column; gap:4px;">
+                          <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:10px; font-weight:800; color:var(--accent-cyan); font-family:'JetBrains Mono';">${numCotiz ? '🔢 ' + numCotiz : 'VALOR PROPUESTA:'}</span>
+                            <span style="font-size:9.5px; color:var(--muted); font-weight:700;">NETO</span>
+                          </div>
+                          <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <strong style="font-size:14px; color:var(--accent-green); font-family:'JetBrains Mono';">$${montoVal.toLocaleString('es-CL')} CLP</strong>
+                            <span style="font-size:10px; color:#94a3b8; font-family:'JetBrains Mono';">+IVA: $${(Math.round(montoVal * 1.19)).toLocaleString('es-CL')}</span>
+                          </div>
+                        </div>` : ''}
+                        <div style="padding-top:8px; border-top:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--muted);">
+                          <span style="display:flex; align-items:center; gap:4px;">🗓️ ${fechaHoraStr}</span>
+                          <button onclick="abrirCotizadorVictor(${negocio.id}, '${negocio.empresa.replace(/'/g, "\\'")}', '${(negocio.contacto_nombre||'').replace(/'/g, "\\'")}', '${(negocio.email||'').replace(/'/g, "\\'")}', '${(negocio.telefono||'').replace(/'/g, "\\'")}', '${numCotiz}')" class="btn-action cotizar">${montoVal > 0 ? '📄 Ver / Editar' : '📑 Cotizar'}</button>
+                        </div>`;
+                    const columna = document.querySelector(`.kanban-col[data-etapa="${etapaDestino}"] .kanban-cards`);
+                    if (columna) columna.appendChild(tarjeta);
+                });
+            }
+        } catch (error) {}
+      }
+
+      function filterPipelineLive() {
+        const query = (document.getElementById('searchPipelineInput')?.value || '').toLowerCase();
+        document.querySelectorAll('#pipelineView .kanban-card').forEach(card => { card.style.display = card.innerText.toLowerCase().includes(query) ? 'flex' : 'none'; });
+      }
+
+      async function dropB2B(ev) {
+          ev.preventDefault(); const data = ev.dataTransfer.getData("text/plain");
+          if (data.startsWith('licitacion-')) return;
+          const tarjeta = document.getElementById(data); if (!tarjeta) return;
+          const colEl = ev.target.closest('.kanban-col'); if (!colEl) return;
+          const dropzone = colEl.querySelector('.kanban-cards'); if (!dropzone) return;
+          dropzone.appendChild(tarjeta);
+          const negocioId = data.replace('negocio-', ''); const nuevaEtapa = colEl.getAttribute('data-etapa');
+          try {
+              let res = await fetch(`/api/pipeline/${negocioId}/etapa`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nuevaEtapa, etapa: nuevaEtapa }) });
+              if (!res.ok) await fetch(`/api/b2b/negocios/${negocioId}/etapa`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ etapa: nuevaEtapa }) });
+              if (nuevaEtapa === 'CIERRE_GANADO') { await fetch(`/api/b2b/negocios/${negocioId}/reforzar-ganado`, { method: 'POST' }).catch(()=>{}); showToast(`🏆 ¡Negocio Ganado! Memoria IA reforzada.`); } 
+              else showToast(`✅ Negocio movido a: ${nuevaEtapa.replace(/_/g, ' ')}`);
+              cargarPipeline();
+          } catch(err) { showToast('❌ Error al mover negocio'); }
+      }
+
+      async function abrirCotizadorVictor(id, empresa, contacto, email, telefono, num) {
+        state.cotizandoNegocioId = id; state.cotizandoEmpresa = empresa; state.cotizandoContacto = contacto; state.cotizandoEmail = email; state.cotizandoNumero = num || ('COT-SEGMED-' + Math.floor(1000 + Math.random() * 9000));
+        document.getElementById('lblCotizadorCliente').innerText = `Dossier • ${empresa} (${state.cotizandoNumero})`;
+        await consultarSugerenciaIA(); document.getElementById('modalCotizadorVictor').classList.add('show');
+      }
+      function cerrarCotizadorVictor() { document.getElementById('modalCotizadorVictor').classList.remove('show'); }
+      
+      async function consultarSugerenciaIA() {
+        const servicio = document.getElementById('cotizServicio').value;
+        try {
+          const res = await fetch(`/api/b2b/ia/sugerir-cotizacion?servicio=${encodeURIComponent(servicio)}`);
+          if (res.ok) {
+            const data = await res.json(); document.getElementById('cotizDiagnostico').value = data.diagnostico; state.partidasCotizacion = data.partidas || [];
+            renderizarPartidasCotizador(); showToast(`💡 Propuesta cargada (${data.origen === 'MEMORIA_HISTORICA_IA' ? 'RAG Histórico' : 'Cold Start'})`);
+          }
+        } catch(e) {}
+      }
+
+      function renderizarPartidasCotizador() {
+        const tbody = document.getElementById('tablaPartidasBody'); tbody.innerHTML = ''; let subtotal = 0;
+        state.partidasCotizacion.forEach((item, index) => {
+          subtotal += (item.cant || 1) * (item.pu || 0);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><input type="text" value="${item.desc}" onchange="actualizarPartida(${index}, 'desc', this.value)" style="width:100%; padding:6px 8px; border-radius:6px; border:1px solid var(--border-mid); background:var(--bg-subtle); color:#fff; font-size:12px;"></td>
+            <td><input type="number" min="1" value="${item.cant}" onchange="actualizarPartida(${index}, 'cant', this.value)" style="width:100%; padding:6px 8px; border-radius:6px; border:1px solid var(--border-mid); background:var(--bg-subtle); color:#fff; font-size:12px;"></td>
+            <td><input type="number" min="0" step="1000" value="${item.pu}" onchange="actualizarPartida(${index}, 'pu', this.value)" style="width:100%; padding:6px 8px; border-radius:6px; border:1px solid var(--border-mid); background:var(--bg-subtle); color:#fff; font-size:12px;"></td>
+            <td style="text-align:center;"><button onclick="eliminarPartida(${index})" style="background:transparent; border:none; color:#ff4d4d; cursor:pointer; font-weight:bold;">✕</button></td>`;
+          tbody.appendChild(tr);
+        });
+        const iva = Math.round(subtotal * 0.19); const total = subtotal + iva;
+        document.getElementById('lblCotizSubtotal').innerText = `$${subtotal.toLocaleString('es-CL')} CLP`;
+        document.getElementById('lblCotizIva').innerText = `$${iva.toLocaleString('es-CL')} CLP`;
+        document.getElementById('lblCotizTotal').innerText = `$${total.toLocaleString('es-CL')} CLP`;
+      }
+      function agregarPartidaTecnica() { state.partidasCotizacion.push({ desc: 'Nueva partida', cant: 1, pu: 250000 }); renderizarPartidasCotizador(); }
+      function actualizarPartida(i, c, v) { state.partidasCotizacion[i][c] = (c==='cant'||c==='pu')?Number(v)||0:v; renderizarPartidasCotizador(); }
+      function eliminarPartida(i) { state.partidasCotizacion.splice(i, 1); renderizarPartidasCotizador(); }
+
+      function armarHTMLDossierCotizacion() {
+        const subtotal = state.partidasCotizacion.reduce((a, it) => a + ((it.cant||1)*(it.pu||0)), 0);
+        const iva = Math.round(subtotal * 0.19); const total = subtotal + iva;
+        let filasHtml = '';
+        state.partidasCotizacion.forEach((it, i) => {
+          filasHtml += `<tr style="border-bottom:1px solid #e2e8f0; ${i%2===0?'background:#f8fafc;':'background:#ffffff;'}"><td style="padding:11px; font-size:11px; color:#0f172a;">${it.desc}</td><td style="padding:11px; text-align:center; color:#334155;">${it.cant}</td><td style="padding:11px; text-align:right; color:#334155;">$${(it.pu||0).toLocaleString('es-CL')}</td><td style="padding:11px; text-align:right; font-weight:800; color:#0f172a;">$${((it.cant||1)*(it.pu||0)).toLocaleString('es-CL')}</td></tr>`;
+        });
+        return `
+          <div style="background:#070B14; border-bottom:4px solid #E30613; padding:18px 24px; color:#fff;"><div style="font-size:19px; font-weight:900;">SEGMED INGENIERÍA SpA</div><div style="font-size:11px;">Cotización Oficial: ${state.cotizandoNumero}</div></div>
+          <div style="padding:15px; color:#0f172a;">
+            <p><strong>Cliente:</strong> ${state.cotizandoEmpresa} <br><strong>Servicio:</strong> ${document.getElementById('cotizServicio').value}</p>
+            <table style="width:100%; border-collapse:collapse; margin-bottom:16px;"><thead><tr style="background:#0F172A; color:#ffffff; font-size:10px;"><th style="padding:10px;">Item</th><th style="padding:10px;">Cant</th><th style="padding:10px;">P.Unit</th><th style="padding:10px;">Total</th></tr></thead><tbody>${filasHtml}</tbody></table>
+            <div style="text-align:right; font-size:12px;"><div>Subtotal: <strong>$${subtotal.toLocaleString('es-CL')}</strong></div><div>IVA (19%): <strong>$${iva.toLocaleString('es-CL')}</strong></div><div style="font-size:14px; font-weight:bold; color:#059669;">Total: $${total.toLocaleString('es-CL')} CLP</div></div>
+          </div>`;
+      }
+
+      async function generarPDFBase64() {
+        const plantilla = document.getElementById('plantillaPdfImprimible'); plantilla.innerHTML = armarHTMLDossierCotizacion(); plantilla.style.display = 'block';
+        const opt = { margin: 6, filename: `Dossier_${state.cotizandoNumero}.pdf`, image: { type: 'jpeg', quality: 1.0 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+        const pdfUri = await html2pdf().from(plantilla).set(opt).outputPdf('datauristring'); plantilla.style.display = 'none'; return pdfUri;
+      }
+      
+      function descargarPDFPropuestaVictor() {
+        if(state.partidasCotizacion.length === 0) return showToast("Agrega partidas");
+        const plantilla = document.getElementById('plantillaPdfImprimible'); plantilla.innerHTML = armarHTMLDossierCotizacion(); plantilla.style.display = 'block';
+        const opt = { margin: 6, filename: `Dossier_${state.cotizandoNumero}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+        html2pdf().from(plantilla).set(opt).save().then(() => { plantilla.style.display = 'none'; showToast(`📄 PDF Descargado`); });
+      }
+
+      async function enviarCotizacionPorCorreo() {
+        if(state.partidasCotizacion.length === 0) return showToast("Agrega partidas");
+        showToast('⏳ Despachando correo...');
+        const pdfBase64 = await generarPDFBase64();
+        const payload = { montoNeto: state.partidasCotizacion.reduce((a,it)=>a+(it.cant*it.pu),0), numeroCotizacion: state.cotizandoNumero, servicio: document.getElementById('cotizServicio').value, validez: document.getElementById('cotizValidez').value, condiciones: document.getElementById('cotizPago').value, diagnostico: document.getElementById('cotizDiagnostico').value, items: state.partidasCotizacion, email: state.cotizandoEmail, pdfBase64: pdfBase64, enviarEmailDirecto: true };
+        try {
+          const res = await fetch(`/api/b2b/negocios/${state.cotizandoNegocioId}/cotizar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const data = await res.json();
+          if (data.success) { showToast(`✉️ Cotización enviada a ${data.emailEnviado}`); cerrarCotizadorVictor(); cargarPipeline(); }
+        } catch (err) { showToast('❌ Error al enviar correo'); }
+      }
+
+      async function enviarCotizacionPorWhatsApp() {
+        if(state.partidasCotizacion.length === 0) return showToast("Agrega partidas");
+        showToast('⏳ Generando WhatsApp...');
+        const pdfBase64 = await generarPDFBase64();
+        const payload = { montoNeto: state.partidasCotizacion.reduce((a,it)=>a+(it.cant*it.pu),0), numeroCotizacion: state.cotizandoNumero, servicio: document.getElementById('cotizServicio').value, validez: document.getElementById('cotizValidez').value, condiciones: document.getElementById('cotizPago').value, diagnostico: document.getElementById('cotizDiagnostico').value, items: state.partidasCotizacion, email: state.cotizandoEmail, pdfBase64: pdfBase64, enviarEmailDirecto: false };
+        try {
+          const res = await fetch(`/api/b2b/negocios/${state.cotizandoNegocioId}/cotizar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const data = await res.json();
+          if (data.success) { showToast(`✅ Registrada en BD`); cerrarCotizadorVictor(); if(data.whatsappUrl) window.open(data.whatsappUrl, '_blank'); cargarPipeline(); }
+        } catch (err) { showToast('❌ Error al procesar WA'); }
+      }
+
+      // =========================================================================
+      // MÓDULO 3: GESTOR DE CAMPAÑAS B2B (ALEX SDR)
+      // =========================================================================
+      function abrirModalLotes() { document.getElementById('modalLotesCampaign').classList.add('show'); }
+      function cerrarModalLotes() { document.getElementById('modalLotesCampaign').classList.remove('show'); }
+      function cargarSegmentoSeleccionado() {
+        const seg = document.getElementById('selRubroSegmento').value; const txt = document.getElementById('campMensaje'); if(!txt) return;
+        if(seg==='HOSPITALARIO') txt.value = "Estimado(a) {nombre}, de parte de SEGMED Ingeniería SpA, nos comunicamos respecto a la infraestructura crítica y climatización en pabellones de {empresa}.\nEstamos coordinando visitas inspectivas técnicas sin costo para certificar presiones y filtros HEPA. ¿Le acomoda coordinar para este jueves o viernes?";
+        else if(seg==='INDUSTRIAL') txt.value = "Estimado(a) {nombre}, junto con saludarle de SEGMED Ingeniería SpA, respecto a la red contra incendios y sala de bombas de {empresa}.\nEstamos agendando pruebas de caudal y certificación NFPA 25 para centros de distribución. ¿Podemos coordinar una breve inspección en terreno?";
+      }
+      async function ejecutarEnvioLote() { 
+        cerrarModalLotes(); 
+        showToast(`🚀 Instrucción enviada a n8n: Despachando lote.`);
+      }
+
+      window.addEventListener('DOMContentLoaded', () => { 
+        loadLicitaciones(); 
+      });
+    </script>
+  </body>
+</html>
