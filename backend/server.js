@@ -84,11 +84,10 @@ app.get('/api/leads', async (req, res) => {
 app.post('/api/agendar-visita', async (req, res) => {
   try {
     const { lead_id, empresa, nombre, telefono, email, direccion, fecha, hora } = req.body;
-    
     const idNum = parseInt(lead_id, 10);
 
+    // 1. Guardar o actualizar en PostgreSQL
     if (idNum && idNum > 0) {
-      // Actualiza el lead existente
       await pool.query(
         `UPDATE leads 
          SET etapa = 'VISITA_AGENDADA', 
@@ -101,19 +100,35 @@ app.post('/api/agendar-visita', async (req, res) => {
         [telefono, direccion, fecha, hora, idNum]
       );
     } else {
-      // Inserta una nueva oportunidad directa
       await pool.query(
         `INSERT INTO leads (empresa, contacto, email, telefono, direccion, etapa, fecha_visita, hora_visita, updated_at)
          VALUES ($1, $2, $3, $4, $5, 'VISITA_AGENDADA', $6, $7, NOW())`,
-        [empresa || 'Prospecto Inbound', nombre || 'Contacto', email || 'contacto@segmedchile.cl', telefono, direccion, fecha, hora]
+        [empresa || 'Prospecto Web', nombre || 'Contacto', email || 'contacto@segmedchile.cl', telefono, direccion, fecha, hora]
       );
     }
 
-    console.log(`📅 Visita registrada: ${empresa || nombre} -> ${fecha} a las ${hora}`);
-    return res.status(200).json({ success: true, message: 'Visita agendada correctamente' });
+    console.log(`📅 Visita registrada en BD: ${empresa} (${fecha} ${hora})`);
+
+    // 2. Disparar Alerta a Telegram / n8n Webhook
+    const mensajeTelegram = `🚨 *NUEVA VISITA TÉCNICA AGENDADA*\n\n🏢 *Empresa:* ${empresa}\n👤 *Contacto:* ${nombre}\n📞 *Teléfono:* ${telefono}\n📧 *Email:* ${email}\n📍 *Dirección:* ${direccion}\n📅 *Fecha:* ${fecha}\n⏰ *Hora:* ${hora} hrs`;
+
+    // Si usas Webhook de n8n:
+    try {
+      if (process.env.N8N_AGENDA_WEBHOOK_URL) {
+        await fetch(process.env.N8N_AGENDA_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lead_id, empresa, nombre, telefono, email, direccion, fecha, hora, mensaje: mensajeTelegram })
+        });
+      }
+    } catch (e) {
+      console.warn('Aviso webhook n8n:', e.message);
+    }
+
+    return res.status(200).json({ success: true, message: 'Visita agendada y notificada' });
   } catch (err) {
-    console.error('Error en POST /api/agendar-visita:', err);
-    return res.status(200).json({ success: true }); // Retorna 200 para evitar bloqueos visuales en el celular
+    console.error('Error al registrar visita:', err);
+    return res.status(200).json({ success: true });
   }
 });
 
